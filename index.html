@@ -115,11 +115,8 @@ loadWords();
 
 <script>
 
-function saveWords(){
- localStorage.setItem("words", JSON.stringify(words));
-}
 
-let words = JSON.parse(localStorage.getItem("words")) || [];
+let words = [];
 window.words = words;
 
 let current=null;
@@ -141,7 +138,6 @@ async function addWord(){
  py.value="";
  vn.value="";
 
- saveWords();
  render();
 }
 
