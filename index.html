@@ -261,11 +261,14 @@ function toggle(id){
 
 
 async function deleteWord(id){
- if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
- await deleteWordCloud(id);
- words = words.filter(x=>x.id!==id);
- saveWords();
- render();
+  if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
+
+  await deleteDoc(doc(db,"words",id));
+
+  words = words.filter(w=>w.id!==id);
+  window.words = words;
+
+  render();
 }
 
 function renderTree(){
