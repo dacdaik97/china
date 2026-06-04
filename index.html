@@ -76,9 +76,50 @@
 
 </div>
 
-<script src="vocab.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAyPN9iBAdfC2JuOeSdIODd6LPSFXosPDo",
+  authDomain: "dacchina-bbd7e.firebaseapp.com",
+  projectId: "dacchina-bbd7e",
+  storageBucket: "dacchina-bbd7e.firebasestorage.app",
+  messagingSenderId: "117950339901",
+  appId: "1:117950339901:web:a29edb51eb3df4a38ec354",
+  measurementId: "G-SSJ5VWXXEB"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.words = [];
+
+async function loadWords(){
+  const snap = await getDocs(collection(db,"words"));
+  window.words = snap.docs.map(d => d.data());
+  if(window.render) window.render();
+}
+window.loadWords = loadWords;
+
+window.saveWordToCloud = async (word) => {
+  await addDoc(collection(db,"words"), word);
+};
+
+loadWords();
+</script>
+
 
 <script>
+
+function saveWords(){
+ localStorage.setItem("words", JSON.stringify(words));
+}
+
+const defaultWords = [...words];
+words = JSON.parse(localStorage.getItem("words")) || defaultWords;
+
 let current=null;
 let answerVN="";
 let correct=0;
@@ -86,11 +127,14 @@ let total=0;
 
 
 
-function addWord(){
- words.push({
+async function addWord(){
+ const newWord={
   hsk:hsk.value, lesson:lesson.value,
   cn:cn.value, py:py.value, vn:vn.value
- });
+ };
+ await saveWordToCloud(newWord);
+ words.push(newWord);
+ saveWords();
  render();
 }
 
