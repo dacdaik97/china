@@ -98,19 +98,16 @@ window.words = [];
 
 async function loadWords(){
   const snap = await getDocs(collection(db,"words"));
-  window.words = snap.docs.map(d => ({id:d.id, ...d.data()}));
+
+  words = snap.docs.map(d => ({
+    id:d.id,
+    ...d.data()
+  }));
+
+  window.words = words;
+
   if(window.render) window.render();
 }
-window.loadWords = loadWords;
-
-window.saveWordToCloud = async (word) => {
-  const ref = await addDoc(collection(db,"words"), word);
-  return ref.id;
-};
-
-window.deleteWordCloud = async (id) => {
-  await deleteDoc(doc(db,"words",id));
-};
 
 loadWords();
 </script>
@@ -122,8 +119,8 @@ function saveWords(){
  localStorage.setItem("words", JSON.stringify(words));
 }
 
-const defaultWords = [...words];
-words = JSON.parse(localStorage.getItem("words")) || defaultWords;
+let words = JSON.parse(localStorage.getItem("words")) || [];
+window.words = words;
 
 let current=null;
 let answerVN="";
