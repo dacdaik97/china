@@ -94,9 +94,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-  window.db = db;
-window.deleteDoc = deleteDoc;
-window.doc = doc;
 window.words = [];
 
 async function loadWords(){
@@ -118,8 +115,11 @@ loadWords();
 
 <script>
 
+function saveWords(){
+ localStorage.setItem("words", JSON.stringify(words));
+}
 
-let words = [];
+let words = JSON.parse(localStorage.getItem("words")) || [];
 window.words = words;
 
 let current=null;
@@ -141,6 +141,7 @@ async function addWord(){
  py.value="";
  vn.value="";
 
+ saveWords();
  render();
 }
 
@@ -260,24 +261,11 @@ function toggle(id){
 
 
 async function deleteWord(id){
-  if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
-
-  try{
-    await window.deleteDoc(
-      window.doc(window.db,"words",id)
-    );
-
-    words = words.filter(w=>w.id!==id);
-    window.words = words;
-
-    render();
-
-    alert("Đã xóa thành công");
-
-  }catch(err){
-    console.error(err);
-    alert("Lỗi: "+err.message);
-  }
+ if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
+ await deleteWordCloud(id);
+ words = words.filter(x=>x.id!==id);
+ saveWords();
+ render();
 }
 
 function renderTree(){
