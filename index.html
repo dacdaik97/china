@@ -1,47 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinese Master HSK Demo V2</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-4">
+<div class="max-w-6xl mx-auto">
+
+<h1 class="text-3xl font-bold mb-4">💪 TUẤN ĐẸP TRAI - HÃY GIỎI NHƯ TUẤN 💪</h1>
+<h1 class="text-3xl font-bold mb-4">📚 Chinese Master - HSK + Flashcard + Quiz</h1>
+
+<div class="bg-white p-4 rounded-xl shadow mb-4">
+<h2 class="font-bold text-xl mb-2">Thêm từ vựng</h2>
+
+<select id="hsk" class="border p-2 w-full mb-2">
+<option>HSK1</option><option>HSK2</option><option>HSK3</option>
 <option>HSK4</option><option>HSK5</option><option>HSK6</option>
 </select>
 
-<input id="lesson" class="border p-2 w-full mb-2" placeholder="Bài học">
 <select id="lesson" class="border p-2 w-full mb-2"><option>Bài 1</option><option>Bài 2</option><option>Bài 3</option><option>Bài 4</option><option>Bài 5</option><option>Bài 6</option><option>Bài 7</option><option>Bài 8</option><option>Bài 9</option><option>Bài 10</option><option>Bài 11</option><option>Bài 12</option><option>Bài 13</option><option>Bài 14</option><option>Bài 15</option><option>Bài 16</option><option>Bài 17</option><option>Bài 18</option><option>Bài 19</option><option>Bài 20</option><option>Bài 21</option><option>Bài 22</option><option>Bài 23</option><option>Bài 24</option><option>Bài 25</option><option>Bài 26</option><option>Bài 27</option><option>Bài 28</option><option>Bài 29</option><option>Bài 30</option></select>
 <input id="cn" class="border p-2 w-full mb-2" placeholder="Tiếng Trung">
 <input id="py" class="border p-2 w-full mb-2" placeholder="Pinyin">
 <input id="vn" class="border p-2 w-full mb-2" placeholder="Nghĩa">
-@@ -79,7 +79,7 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
+
+<button onclick="addWord()" class="bg-black text-white px-4 py-2 rounded">Thêm từ</button>
+</div>
+
+<div class="bg-white p-6 rounded-xl shadow mb-4 text-center">
+<h2 class="font-bold text-xl mb-4">Flashcard</h2>
+
+<select id="flashHSK" onchange="nextCard()" class="border p-2"></select>
+<select id="flashLesson" onchange="nextCard()" class="border p-2"></select>
+
+<div id="card" class="text-5xl font-bold my-4"></div>
+
+<div id="answer" class="hidden">
+<p id="pyText"></p>
+<p id="vnText"></p>
+<p id="metaText"></p>
+</div>
+
+<button onclick="flipCard()" class="border px-4 py-2 rounded">Lật thẻ</button>
+<button onclick="nextCard()" class="border px-4 py-2 rounded">Tiếp theo</button>
+</div>
+
+<div class="bg-white p-6 rounded-xl shadow mb-4">
+<h2 class="font-bold text-xl mb-4">📝 Trắc nghiệm</h2>
+
+<select id="quizHSK" onchange="updateQuizLessons();newQuiz()" class="border p-2"></select>
+<select id="quizLesson" onchange="newQuiz()" class="border p-2"></select>
+
+<div class="mt-3">
+Điểm: <span id="quizScore">0</span>/<span id="quizTotal">0</span>
+</div>
+
+<div class="w-full bg-slate-200 rounded mt-2">
+<div id="progressBar" class="bg-green-500 text-white text-center rounded" style="width:0%">0%</div>
+</div>
+
+<div id="question" class="text-2xl my-4"></div>
+<div id="options"></div>
+
+<button onclick="checkQuiz()" class="mt-3 border px-4 py-2 rounded">Kiểm tra</button>
+
+<div id="result" class="mt-3 font-bold"></div>
+</div>
+
+<div class="bg-white p-6 rounded-xl shadow">
+<h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
+<div id="tree"></div>
+</div>
+
+</div>
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyAyPN9iBAdfC2JuOeSdIODd6LPSFXosPDo",
-@@ -98,13 +98,18 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
+  apiKey: "AIzaSyAyPN9iBAdfC2JuOeSdIODd6LPSFXosPDo",
+  authDomain: "dacchina-bbd7e.firebaseapp.com",
+  projectId: "dacchina-bbd7e",
+  storageBucket: "dacchina-bbd7e.firebasestorage.app",
+  messagingSenderId: "117950339901",
+  appId: "1:117950339901:web:a29edb51eb3df4a38ec354",
+  measurementId: "G-SSJ5VWXXEB"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.words = [];
 
 async function loadWords(){
-const snap = await getDocs(collection(db,"words"));
-  window.words = snap.docs.map(d => d.data());
-  window.words = snap.docs.map(d => ({id:d.id, ...d.data()}));
-if(window.render) window.render();
+  const snap = await getDocs(collection(db,"words"));
+
+  words = snap.docs.map(d => ({
+    id:d.id,
+    ...d.data()
+  }));
+
+  window.words = words;
+
+  if(window.render) window.render();
 }
-window.loadWords = loadWords;
-
-window.saveWordToCloud = async (word) => {
-  await addDoc(collection(db,"words"), word);
-  const ref = await addDoc(collection(db,"words"), word);
-  return ref.id;
-};
-
-window.deleteWordCloud = async (id) => {
-  await deleteDoc(doc(db,"words",id));
-};
 
 loadWords();
-@@ -132,8 +137,13 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
-hsk:hsk.value, lesson:lesson.value,
-cn:cn.value, py:py.value, vn:vn.value
-};
- await saveWordToCloud(newWord);
- words.push(newWord);
+</script>
+
+
+<script>
+
+function saveWords(){
+ localStorage.setItem("words", JSON.stringify(words));
+}
+
+let words = JSON.parse(localStorage.getItem("words")) || [];
+window.words = words;
+
+let current=null;
+let answerVN="";
+let correct=0;
+let total=0;
+
+
+
+async function addWord(){
+ const newWord={
+  hsk:hsk.value, lesson:lesson.value,
+  cn:cn.value, py:py.value, vn:vn.value
+ };
  const id = await saveWordToCloud(newWord);
  words.push({...newWord,id});
 
@@ -49,54 +141,148 @@ cn:cn.value, py:py.value, vn:vn.value
  py.value="";
  vn.value="";
 
-saveWords();
-render();
-}
-@@ -155,13 +165,21 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
-
-function updateFlashLessons(){
-let pool=flashHSK.value==="all"?words:words.filter(x=>x.hsk===flashHSK.value);
- let lessons=unique(pool.map(x=>x.lesson));
- let lessons=unique(pool.map(x=>x.lesson)).sort((a,b)=>{
- let na=parseInt((a.match(/\d+/)||[0])[0]);
- let nb=parseInt((b.match(/\d+/)||[0])[0]);
- return na-nb;
-});
-flashLesson.innerHTML='<option value="all">Tất cả bài</option>'+lessons.map(x=>`<option>${x}</option>`).join("");
-}
-
-function updateQuizLessons(){
-let pool=quizHSK.value==="all"?words:words.filter(x=>x.hsk===quizHSK.value);
- let lessons=unique(pool.map(x=>x.lesson));
- let lessons=unique(pool.map(x=>x.lesson)).sort((a,b)=>{
- let na=parseInt((a.match(/\d+/)||[0])[0]);
- let nb=parseInt((b.match(/\d+/)||[0])[0]);
- return na-nb;
-});
-quizLesson.innerHTML='<option value="all">Tất cả bài</option>'+lessons.map(x=>`<option>${x}</option>`).join("");
-}
-
-@@ -244,6 +262,15 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
-document.getElementById(id).classList.toggle("hidden");
-}
-
-
-async function deleteWord(id){
- if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
- await deleteWordCloud(id);
- words = words.filter(x=>x.id!==id);
  saveWords();
  render();
 }
 
-function renderTree(){
-let hsks=unique(words.map(x=>x.hsk));
-let html='';
-@@ -256,7 +283,13 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
-  onclick="toggle('h${hi}')">▶ ${hskName} (${hWords.length} từ)</button>
-  <div id="h${hi}" class="hidden p-2">`;
+function unique(a){ return [...new Set(a)]; }
 
-   unique(hWords.map(x=>x.lesson)).forEach((lesson,li)=>{
+function renderSelectors(){
+ let hsks=unique(words.map(x=>x.hsk));
+
+ let html='<option value="all">Tất cả HSK</option>'+
+ hsks.map(x=>`<option value="${x}">${x}</option>`).join("");
+
+ flashHSK.innerHTML=html;
+ quizHSK.innerHTML=html;
+
+ updateFlashLessons();
+ updateQuizLessons();
+}
+
+function updateFlashLessons(){
+ let pool=flashHSK.value==="all"?words:words.filter(x=>x.hsk===flashHSK.value);
+ let lessons=unique(pool.map(x=>x.lesson)).sort((a,b)=>{
+ let na=parseInt((a.match(/\d+/)||[0])[0]);
+ let nb=parseInt((b.match(/\d+/)||[0])[0]);
+ return na-nb;
+});
+ flashLesson.innerHTML='<option value="all">Tất cả bài</option>'+lessons.map(x=>`<option>${x}</option>`).join("");
+}
+
+function updateQuizLessons(){
+ let pool=quizHSK.value==="all"?words:words.filter(x=>x.hsk===quizHSK.value);
+ let lessons=unique(pool.map(x=>x.lesson)).sort((a,b)=>{
+ let na=parseInt((a.match(/\d+/)||[0])[0]);
+ let nb=parseInt((b.match(/\d+/)||[0])[0]);
+ return na-nb;
+});
+ quizLesson.innerHTML='<option value="all">Tất cả bài</option>'+lessons.map(x=>`<option>${x}</option>`).join("");
+}
+
+flashHSK.addEventListener("change",()=>{updateFlashLessons();nextCard();});
+
+function getPool(hskSel,lessonSel){
+ let pool=words;
+
+ if(hskSel.value!=="all")
+   pool=pool.filter(x=>x.hsk===hskSel.value);
+
+ if(lessonSel.value!=="all")
+   pool=pool.filter(x=>x.lesson===lessonSel.value);
+
+ return pool;
+}
+
+function nextCard(){
+ let pool=getPool(flashHSK,flashLesson);
+ if(!pool.length) return;
+
+ current=pool[Math.floor(Math.random()*pool.length)];
+ card.innerText=current.cn;
+ pyText.innerText=current.py;
+ vnText.innerText=current.vn;
+ metaText.innerText=current.hsk+" • "+current.lesson;
+ answer.classList.add("hidden");
+}
+
+function flipCard(){
+ answer.classList.toggle("hidden");
+}
+
+function newQuiz(){
+ let pool=getPool(quizHSK,quizLesson);
+ if(pool.length===0) return;
+
+ let q=pool[Math.floor(Math.random()*pool.length)];
+ answerVN=q.vn;
+
+ question.innerText=q.cn+" nghĩa là gì?";
+
+ let opts=[q.vn];
+ while(opts.length<4 && pool.length>1){
+   let x=pool[Math.floor(Math.random()*pool.length)].vn;
+   if(!opts.includes(x)) opts.push(x);
+ }
+
+ opts.sort(()=>Math.random()-0.5);
+
+ options.innerHTML=opts.map(o=>
+ `<label><input type="radio" name="q" value="${o}"> ${o}</label><br>`
+ ).join("");
+}
+
+function checkQuiz(){
+ let s=document.querySelector("input[name=q]:checked");
+ if(!s) return;
+
+ total++;
+
+ if(s.value===answerVN){
+   correct++;
+   result.innerText="✅ Chính xác";
+ }else{
+   result.innerText="❌ Sai. Đáp án: "+answerVN;
+ }
+
+ quizScore.innerText=correct;
+ quizTotal.innerText=total;
+
+ let percent=Math.round(correct/total*100);
+ progressBar.style.width=percent+"%";
+ progressBar.innerText=correct+"/"+total+" ("+percent+"%)";
+
+ newQuiz();
+}
+
+function toggle(id){
+ document.getElementById(id).classList.toggle("hidden");
+}
+
+
+async function deleteWord(id){
+  if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
+
+  await deleteDoc(doc(db,"words",id));
+
+  words = words.filter(w=>w.id!==id);
+  window.words = words;
+
+  render();
+}
+
+function renderTree(){
+ let hsks=unique(words.map(x=>x.hsk));
+ let html='';
+
+ hsks.forEach((hskName,hi)=>{
+   let hWords=words.filter(x=>x.hsk===hskName);
+
+   html+=`<div class="mb-2 border rounded">
+   <button class="w-full p-3 bg-slate-300 text-left font-bold"
+   onclick="toggle('h${hi}')">▶ ${hskName} (${hWords.length} từ)</button>
+   <div id="h${hi}" class="hidden p-2">`;
+
    unique(hWords.map(x=>x.lesson))
    .sort((a,b)=>{
      let na=parseInt((a.match(/\d+/)||[0])[0]);
@@ -104,15 +290,34 @@ let html='';
      return na-nb;
    })
    .forEach((lesson,li)=>{
-let lWords=hWords.filter(x=>x.lesson===lesson);
+     let lWords=hWords.filter(x=>x.lesson===lesson);
 
-html+=`<div class="ml-4 mb-2 border rounded">
-@@ -265,7 +298,7 @@ <h2 class="font-bold text-xl mb-4">📂 Danh sách từ vựng</h2>
-    <div id="l${hi}_${li}" class="hidden p-2">`;
+     html+=`<div class="ml-4 mb-2 border rounded">
+     <button class="w-full p-2 bg-slate-200 text-left"
+     onclick="toggle('l${hi}_${li}')">▶ ${lesson} (${lWords.length} từ)</button>
+     <div id="l${hi}_${li}" class="hidden p-2">`;
 
-lWords.forEach(w=>{
-       html+=`<div>${w.cn} - ${w.py} - ${w.vn}</div>`;
+     lWords.forEach(w=>{
        html+=`<div class='flex justify-between'><span>${w.cn} - ${w.py} - ${w.vn}</span><button class='text-red-600' onclick="deleteWord('${w.id}')">Xóa</button></div>`;
-});
+     });
 
-html+='</div></div>';
+     html+='</div></div>';
+   });
+
+   html+='</div></div>';
+ });
+
+ tree.innerHTML=html;
+}
+
+function render(){
+ renderSelectors();
+ renderTree();
+ nextCard();
+ newQuiz();
+}
+
+render();
+</script>
+</body>
+</html>
