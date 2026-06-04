@@ -94,9 +94,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-  window.db = db;
-window.deleteDoc = deleteDoc;
-window.doc = doc;
 window.words = [];
 
 async function loadWords(){
@@ -262,22 +259,12 @@ function toggle(id){
 async function deleteWord(id){
   if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
 
-  try{
-    await window.deleteDoc(
-      window.doc(window.db,"words",id)
-    );
+  await deleteDoc(doc(db,"words",id));
 
-    words = words.filter(w=>w.id!==id);
-    window.words = words;
+  words = words.filter(w=>w.id!==id);
+  window.words = words;
 
-    render();
-
-    alert("Đã xóa thành công");
-
-  }catch(err){
-    console.error(err);
-    alert("Lỗi: "+err.message);
-  }
+  render();
 }
 
 function renderTree(){
