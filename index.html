@@ -21,7 +21,7 @@
 <option>HSK4</option><option>HSK5</option><option>HSK6</option>
 </select>
 
-<input id="lesson" class="border p-2 w-full mb-2" placeholder="Bài học">
+<select id="lesson" class="border p-2 w-full mb-2"><option>Bài 1</option><option>Bài 2</option><option>Bài 3</option><option>Bài 4</option><option>Bài 5</option><option>Bài 6</option><option>Bài 7</option><option>Bài 8</option><option>Bài 9</option><option>Bài 10</option><option>Bài 11</option><option>Bài 12</option><option>Bài 13</option><option>Bài 14</option><option>Bài 15</option><option>Bài 16</option><option>Bài 17</option><option>Bài 18</option><option>Bài 19</option><option>Bài 20</option><option>Bài 21</option><option>Bài 22</option><option>Bài 23</option><option>Bài 24</option><option>Bài 25</option><option>Bài 26</option><option>Bài 27</option><option>Bài 28</option><option>Bài 29</option><option>Bài 30</option></select>
 <input id="cn" class="border p-2 w-full mb-2" placeholder="Tiếng Trung">
 <input id="py" class="border p-2 w-full mb-2" placeholder="Pinyin">
 <input id="vn" class="border p-2 w-full mb-2" placeholder="Nghĩa">
@@ -79,7 +79,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAyPN9iBAdfC2JuOeSdIODd6LPSFXosPDo",
@@ -98,13 +98,18 @@ window.words = [];
 
 async function loadWords(){
   const snap = await getDocs(collection(db,"words"));
-  window.words = snap.docs.map(d => d.data());
+  window.words = snap.docs.map(d => ({id:d.id, ...d.data()}));
   if(window.render) window.render();
 }
 window.loadWords = loadWords;
 
 window.saveWordToCloud = async (word) => {
-  await addDoc(collection(db,"words"), word);
+  const ref = await addDoc(collection(db,"words"), word);
+  return ref.id;
+};
+
+window.deleteWordCloud = async (id) => {
+  await deleteDoc(doc(db,"words",id));
 };
 
 loadWords();
@@ -132,8 +137,13 @@ async function addWord(){
   hsk:hsk.value, lesson:lesson.value,
   cn:cn.value, py:py.value, vn:vn.value
  };
- await saveWordToCloud(newWord);
- words.push(newWord);
+ const id = await saveWordToCloud(newWord);
+ words.push({...newWord,id});
+
+ cn.value="";
+ py.value="";
+ vn.value="";
+
  saveWords();
  render();
 }
@@ -155,13 +165,21 @@ function renderSelectors(){
 
 function updateFlashLessons(){
  let pool=flashHSK.value==="all"?words:words.filter(x=>x.hsk===flashHSK.value);
- let lessons=unique(pool.map(x=>x.lesson));
+ let lessons=unique(pool.map(x=>x.lesson)).sort((a,b)=>{
+ let na=parseInt((a.match(/\d+/)||[0])[0]);
+ let nb=parseInt((b.match(/\d+/)||[0])[0]);
+ return na-nb;
+});
  flashLesson.innerHTML='<option value="all">Tất cả bài</option>'+lessons.map(x=>`<option>${x}</option>`).join("");
 }
 
 function updateQuizLessons(){
  let pool=quizHSK.value==="all"?words:words.filter(x=>x.hsk===quizHSK.value);
- let lessons=unique(pool.map(x=>x.lesson));
+ let lessons=unique(pool.map(x=>x.lesson)).sort((a,b)=>{
+ let na=parseInt((a.match(/\d+/)||[0])[0]);
+ let nb=parseInt((b.match(/\d+/)||[0])[0]);
+ return na-nb;
+});
  quizLesson.innerHTML='<option value="all">Tất cả bài</option>'+lessons.map(x=>`<option>${x}</option>`).join("");
 }
 
@@ -244,6 +262,15 @@ function toggle(id){
  document.getElementById(id).classList.toggle("hidden");
 }
 
+
+async function deleteWord(id){
+ if(!confirm("Bạn có chắc muốn xóa từ này?")) return;
+ await deleteWordCloud(id);
+ words = words.filter(x=>x.id!==id);
+ saveWords();
+ render();
+}
+
 function renderTree(){
  let hsks=unique(words.map(x=>x.hsk));
  let html='';
@@ -256,7 +283,13 @@ function renderTree(){
    onclick="toggle('h${hi}')">▶ ${hskName} (${hWords.length} từ)</button>
    <div id="h${hi}" class="hidden p-2">`;
 
-   unique(hWords.map(x=>x.lesson)).forEach((lesson,li)=>{
+   unique(hWords.map(x=>x.lesson))
+   .sort((a,b)=>{
+     let na=parseInt((a.match(/\d+/)||[0])[0]);
+     let nb=parseInt((b.match(/\d+/)||[0])[0]);
+     return na-nb;
+   })
+   .forEach((lesson,li)=>{
      let lWords=hWords.filter(x=>x.lesson===lesson);
 
      html+=`<div class="ml-4 mb-2 border rounded">
@@ -265,7 +298,7 @@ function renderTree(){
      <div id="l${hi}_${li}" class="hidden p-2">`;
 
      lWords.forEach(w=>{
-       html+=`<div>${w.cn} - ${w.py} - ${w.vn}</div>`;
+       html+=`<div class='flex justify-between'><span>${w.cn} - ${w.py} - ${w.vn}</span><button class='text-red-600' onclick="deleteWord('${w.id}')">Xóa</button></div>`;
      });
 
      html+='</div></div>';
